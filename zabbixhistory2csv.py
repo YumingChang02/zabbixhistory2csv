@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import argparse
 import csv
 import getpass
@@ -80,7 +81,7 @@ def write_csv(objects, output_file):
     :return:
     """
     # Open the output_file and instanstiate the csv.writer object
-    f = csv.writer(open(output_file, "wb+"))
+    f = csv.writer(open(output_file, "w+"))
 
     # Write the top line of the output_file which descibes the columns
     f.writerow(objects[0].keys())
