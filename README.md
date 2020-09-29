@@ -31,3 +31,5 @@ optional arguments:
 
 ## Installation of dependencies:
 pip install -r requirements.txt
+
+## Input time needs to be offset by timezone!!

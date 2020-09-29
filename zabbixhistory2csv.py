@@ -3,7 +3,7 @@ import argparse
 import csv
 import getpass
 import sys
-import time
+import datetime
 
 from pyzabbix import ZabbixAPI
 
@@ -116,7 +116,7 @@ def build_parsers():
                         default=getpass.getuser(),
                         help="Zabbix API user")
     parser.add_argument("-m", "--minutes-ago",
-                        default='60',
+                        #default='60',
                         type=int,
                         help='How many minutes worth of history should'
                              'be returned going back in time from right now')
@@ -133,7 +133,12 @@ def build_parsers():
                         type=int,
                         help="The max days worth of history that we will "
                              "request from zabbix per request")
-
+    parser.add_argument("-s", "--start-time",
+                        type=str,
+                        help="The starting date in Year-Month-Day Hour:minute format")
+    parser.add_argument("-e", "--end-time",
+                        type=str,
+                        help="The end date in Year-Month-Day Hour:minute format")
     return parser
 
 
@@ -143,9 +148,23 @@ if __name__ == '__main__':
     args = parser.parse_args(sys.argv[1:])
 
     # Generate parameters for get_zapi function
-    seconds_ago = int(args.minutes_ago) * 60
-    now = int(time.time())
+    now = int( datetime.datetime.now().timestamp() )
+    if args.end_time is not None:
+        end_unixtime = int( datetime.datetime.strptime(args.end_time, '%Y-%m-%d %H:%M').timestamp() )
+    else:
+        print("No end time given, assuming now as end time")
+        end_unixtime = now
+
+    if args.start_time is not None:
+        start_unixtime = int( datetime.datetime.strptime(args.start_time, '%Y-%m-%d %H:%M').timestamp() )
+    elif args.minutes_ago is not None:
+        start_unixtime = now - int(args.minutes_ago) * 60
+    else:
+        print("Please specify start time")
+
     password = getpass.getpass()
+
+    print("Start time: {}, End time: {}".format( start_unixtime, end_unixtime ) )
 
     # Generate the zapi object so we can pass it to the get_history function
     try:
@@ -159,7 +178,7 @@ if __name__ == '__main__':
 
     # generate the list of history objects returned from zabbix api.
     try:
-        results = get_history(zapi, args.itemid, (now - seconds_ago), now, args.max_days)
+        results = get_history(zapi, args.itemid, start_unixtime, now, args.max_days)
     except Exception as e:
         message = ('An error has occurred.  --max-days may be set too high. '
                    'Try decreasing it value.\nError:\n{0}')
@@ -169,4 +188,4 @@ if __name__ == '__main__':
     # Write the results to file in csv format
     write_csv(results, args.output_file)
     print('Writing {0} minutes worth of history to {1}'.format(
-            args.minutes_ago, args.output_file))
+            ( end_unixtime - start_unixtime ) // 60 , args.output_file))
